@@ -38,7 +38,7 @@ dependencies = [
   "strawberry-graphql>=0.316.0",
   "strawberry-graphql-django>=0.86.0",
   "uvicorn-worker==0.4.0",
-  "uvicorn[standard]==0.47.0",
+  "uvicorn[standard]==0.48.0",
   "whitenoise==6.12.0",
 ]
 
@@ -48,11 +48,11 @@ dev = [
   "django-coverage-plugin==3.2.2",
   "django-debug-toolbar==6.3.0",
   "django-extensions==4.1",
-  "django-stubs[compatible-mypy]==6.0.4",
+  "django-stubs[compatible-mypy]==6.0.5",
   "djlint==1.36.4",
   "factory-boy==3.3.3",
   "ipdb==0.13.13",
-  "mypy==2.0.0",
+  "mypy==2.1.0",
   "pre-commit==4.6.0",
   "psycopg[binary]==3.3.4",
   "pytest==9.0.3",
