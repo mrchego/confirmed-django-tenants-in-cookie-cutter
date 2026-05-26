@@ -1,0 +1,44 @@
+Remove-Item -Recurse -Force .\confirming_django_tenants\users 
+Remove-Item -Recurse -Force .\confirming_django_tenants\templates\users
+Remove-Item docs\users.rst  
+Remove-Item -Recurse -Force .\confirming_django_tenants\templates\allauth 
+
+Get-ChildItem -Recurse -Path .\*migrations\*.py |                      
+>> Where-Object { $_.Name -ne "__init__.py" } |                                                     
+>> Remove-Item -Force
+
+Get-ChildItem -Recurse -Filter *.pyc |                                 
+>> Where-Object { $_.FullName -match "\\migrations\\" } |                                           
+>> Remove-Item -Force
+
+ find . -path "*/__pycache__" -type d -exec rm -rf {} +   
+ Remove-Item -Recurse -Force docs 
+Remove-Item -Recurse -Force locale 
+ 
+Get-ChildItem -Recurse -Include *.py,*.html,*.yml,*.env |              
+>> Select-String "users:"    
+
+Get-ChildItem -Recurse -Include *.py,*.html,*.yml |                    
+>> Select-String "allauth" 
+
+Remove-Item uv.lock 
+
+uv add django-filter django-tenant-users django-tenants  strawberry-graphql strawberry-graphql-django
+
+docker compose -f docker-compose.local.yml down 
+
+docker compose -f docker-compose.local.yml build --no-cache   
+
+docker compose -f docker-compose.local.yml run --rm django python manage.py startapp core  confirming_django_tenants/core 
+
+docker compose -f docker-compose.local.yml run --rm django python manage.py startapp tenants  confirming_django_tenants/tenants  
+
+ docker compose -f docker-compose.local.yml run --rm django python manage.py makemigrations           
+
+docker compose -f docker-compose.local.yml run --rm django python manage.py migrate   
+
+docker compose -f docker-compose.local.yml run --rm django python manage.py migrate --shared           
+
+ docker compose -f docker-compose.local.yml run --rm django python manage.py populate_db
+
+ docker compose -f docker-compose.local.yml up                                   
