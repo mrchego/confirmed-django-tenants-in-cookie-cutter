@@ -5,6 +5,7 @@ import ssl
 from pathlib import Path
 
 import environ
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # confirming_django_tenants/
@@ -113,7 +114,8 @@ SHARED_APPS = [
 
     # shared apps
     "confirming_django_tenants.tenants.apps.TenantsConfig",
-    "confirming_django_tenants.core",
+    "confirming_django_tenants.core.apps.CoreConfig",
+    "confirming_django_tenants.authentication.apps.AuthenticationConfig",
 ]
 
 TENANT_APPS = [
@@ -123,6 +125,8 @@ TENANT_APPS = [
     "tenant_users.permissions",
 
     # tenant isolated apps
+    "confirming_django_tenants.rbac.apps.RBACConfig",
+    "confirming_django_tenants.employees.apps.EmployeesConfig",
 
 ]
 
@@ -130,6 +134,24 @@ INSTALLED_APPS = SHARED_APPS + [
     app for app in TENANT_APPS
     if app not in SHARED_APPS
 ]
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# GraphQL Settings
+STRAWBERRY_DJANGO = {
+    "FIELD_DESCRIPTION_FROM_MODEL": True,
+    "TYPE_DESCRIPTION_FROM_MODEL": True,
+    "MUTATIONS_DEFAULT_ARGUMENTS_REQUIRED": True,
+    "MUTATIONS_DEFAULT_HANDLE_ERRORS": True,
+}
+
+
 # MIGRATIONS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#migration-modules
@@ -260,6 +282,10 @@ X_FRAME_OPTIONS = "DENY"
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
+APP_NAME = "Your SaaS App Name"
+DEFAULT_FROM_EMAIL = "noreply@yourapp.com"
+EMAIL_SUBJECT_PREFIX = f"[{APP_NAME}] "
+
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND",
     default="django.core.mail.backends.smtp.EmailBackend",

@@ -6,3 +6,4 @@ def tenant_debug(request):
         "schema": request.tenant.schema_name,
         "domain": request.get_host(),
     })
+    
