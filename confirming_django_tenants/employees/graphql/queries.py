@@ -1,7 +1,7 @@
 import strawberry
 from typing import List, Optional
 from strawberry.types import Info
-from strawberry_django.auth.decorators import login_required
+from confirming_django_tenants.authentication.decorators import login_required
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 

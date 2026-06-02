@@ -192,6 +192,7 @@ class RBACService:
         # Get all active user roles
         user_roles = UserRole.objects.filter(
             user=user,
+            role__tenant=tenant,
             is_active=True,
             role__is_active=True,
         ).select_related('role')
@@ -232,6 +233,7 @@ class RBACService:
         user_roles = UserRole.objects.filter(
             user=user,
             is_active=True,
+            role__tenant=tenant,
             role__is_active=True,
         ).select_related('role', 'assigned_by')
         
@@ -279,6 +281,7 @@ class RBACService:
             user=user,
             is_active=True,
             role__is_active=True,
+            role__tenant=tenant,
             role__permissions__codename=codename,
             role__permissions__content_type__app_label=app_label,
         ).exists()
@@ -378,6 +381,7 @@ class RBACService:
         
         for slug, config in default_roles_config.items():
             role, created = Role.objects.get_or_create(
+                tenant=tenant,
                 slug=slug,
                 defaults={
                     "name": config["name"],

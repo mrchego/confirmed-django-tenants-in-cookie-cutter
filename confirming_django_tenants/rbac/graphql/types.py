@@ -57,3 +57,8 @@ class UserRoleInfoType:
     role_slug: str
     assigned_by: Optional[str]
     assigned_at: str
+    
+@strawberry.type
+class PermissionGroupEntryType:
+    key: str
+    value: PermissionGroupType

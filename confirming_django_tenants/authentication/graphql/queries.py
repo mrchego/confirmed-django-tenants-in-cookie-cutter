@@ -1,6 +1,6 @@
 import strawberry
 from strawberry.types import Info
-from strawberry_django.auth.decorators import login_required
+from confirming_django_tenants.authentication.decorators import login_required
 
 from confirming_django_tenants.authentication.services import AuthenticationService
 from confirming_django_tenants.authentication.graphql.types import (

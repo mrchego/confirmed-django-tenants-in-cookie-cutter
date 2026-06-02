@@ -131,12 +131,11 @@ class EmployeeAdmin(TimeStampedModelAdmin):
         'user__email'
     ]
     readonly_fields = TimeStampedModelAdmin.readonly_fields + ['slug', 'has_user_account_display']
-    prepopulated_fields = {'slug': ('name', 'emp_id')}
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
-                'name', 'emp_id', 'slug', 'department', 
+                'name', 'emp_id', 'department', 
                 'designation', 'status'
             )
         }),

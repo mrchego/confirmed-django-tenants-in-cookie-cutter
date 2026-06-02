@@ -3,7 +3,7 @@ from django_tenants.utils import schema_context
 from confirming_django_tenants.core.models import TimeStampedModel
 
 
-class Department(models.Model):
+class Department(TimeStampedModel):
     """Department model (tenant-scoped)."""
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100)
@@ -101,12 +101,6 @@ class Employee(TimeStampedModel):
 
     class Meta:
         ordering = ['name']
-        permissions = [
-            ("view_employee", "Can view employees"),
-            ("add_employee", "Can add employees"),
-            ("change_employee", "Can change employees"),
-            ("delete_employee", "Can delete employees"),
-        ]
 
     def __str__(self):
         return f"{self.name} ({self.emp_id})"

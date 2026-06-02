@@ -18,7 +18,8 @@ from confirming_django_tenants.authentication.models import (
     PasswordResetToken,
 )
 from confirming_django_tenants.authentication.email_service import EmailService
-
+import logging
+logger = logging.getLogger(__name__)
 
 class AuthenticationService:
     """Service layer for authentication operations."""
@@ -312,11 +313,15 @@ class AuthenticationService:
     ) -> Dict[str, Any]:
         """
         Login user and return comprehensive tenant information.
+        
+        This method handles the transition between public and tenant schemas
+        properly, ensuring RBAC queries run in the correct tenant schema.
         """
-        # Authenticate user
+        # Authenticate user (runs in public schema)
         user = authenticate(email=email, password=password)
         
         if not user:
+            # Log failed attempt in public schema
             LoginAttempt.objects.create(
                 email=email,
                 tenant_slug=tenant_slug or '',
@@ -329,6 +334,7 @@ class AuthenticationService:
         
         # Check if email is verified
         if not user.is_verified:
+            # Log pending verification in public schema
             LoginAttempt.objects.create(
                 user=user,
                 email=email,
@@ -344,6 +350,7 @@ class AuthenticationService:
         
         # Check if user is active
         if not user.is_active:
+            # Log blocked attempt in public schema
             LoginAttempt.objects.create(
                 user=user,
                 email=email,
@@ -354,10 +361,11 @@ class AuthenticationService:
             )
             raise AuthenticationError("Account is deactivated")
         
-        # Get all tenants for user
+        # Get all tenants for user (query runs in public schema)
         user_tenants = user.tenants.all()
         
         if not user_tenants.exists():
+            # Log failed attempt in public schema
             LoginAttempt.objects.create(
                 user=user,
                 email=email,
@@ -368,21 +376,18 @@ class AuthenticationService:
             )
             raise AuthenticationError("User is not associated with any tenant")
         
-        # Determine current tenant
+        # Determine current tenant (query runs in public schema)
         try:
             if tenant_slug:
                 current_tenant = user_tenants.get(slug=tenant_slug)
             else:
                 current_tenant = user_tenants.first()
         except Tenant.DoesNotExist:
-            raise AuthenticationError(f"Tenant '{tenant_slug}' not found or not accessible")
+            raise AuthenticationError(
+                f"Tenant '{tenant_slug}' not found or not accessible"
+            )
         
-        # Get roles and permissions for current tenant
-        with schema_context(current_tenant.schema_name):
-            permissions_data = RBACService.get_user_permissions(user, current_tenant)
-            roles_data = RBACService.get_user_roles(user, current_tenant)
-        
-        # Generate tokens
+        # Generate tokens (runs in public schema - RefreshToken model is in public)
         tokens = AuthenticationService.generate_jwt_tokens(
             user,
             device_info={
@@ -391,22 +396,60 @@ class AuthenticationService:
             }
         )
         
-        # Build available tenants list
+        # Get roles and permissions for current tenant
+        # IMPORTANT: Use schema_context to switch to tenant schema for RBAC queries
+        try:
+            with schema_context(current_tenant.schema_name):
+                permissions_data = RBACService.get_user_permissions(
+                    user, current_tenant
+                )
+                roles_data = RBACService.get_user_roles(
+                    user, current_tenant
+                )
+        except Exception as e:
+            # If tenant schema has issues, still allow login but with empty roles
+            logger.error(
+                f"Error fetching roles for tenant {current_tenant.schema_name}: {str(e)}"
+            )
+            permissions_data = {"permissions": []}
+            roles_data = []
+        
+        # Build available tenants list with their respective roles
         available_tenants = []
         for tenant in user_tenants:
-            with schema_context(tenant.schema_name):
-                tenant_roles = RBACService.get_user_roles(user, tenant)
-            
-            available_tenants.append({
-                "id": str(tenant.id),
-                "name": tenant.name,
-                "slug": tenant.slug,
-                "schema_name": tenant.schema_name,
-                "roles": [r["role_slug"] for r in tenant_roles],
-                "is_current": tenant.id == current_tenant.id,
-            })
+            try:
+                # Switch to each tenant's schema to get their specific roles
+                with schema_context(tenant.schema_name):
+                    tenant_roles = RBACService.get_user_roles(user, tenant)
+                    tenant_permissions = RBACService.get_user_permissions(
+                        user, tenant
+                    )
+                
+                available_tenants.append({
+                    "id": str(tenant.id),
+                    "name": tenant.name,
+                    "slug": tenant.slug,
+                    "schema_name": tenant.schema_name,
+                    "roles": [r["role_slug"] for r in tenant_roles],
+                    "permissions": tenant_permissions.get("permissions", []),
+                    "is_current": tenant.id == current_tenant.id,
+                })
+            except Exception as e:
+                # If a specific tenant has schema issues, include it with minimal info
+                logger.error(
+                    f"Error fetching data for tenant {tenant.schema_name}: {str(e)}"
+                )
+                available_tenants.append({
+                    "id": str(tenant.id),
+                    "name": tenant.name,
+                    "slug": tenant.slug,
+                    "schema_name": tenant.schema_name,
+                    "roles": [],
+                    "permissions": [],
+                    "is_current": tenant.id == current_tenant.id,
+                })
         
-        # Log successful attempt
+        # Log successful attempt (runs in public schema)
         LoginAttempt.objects.create(
             user=user,
             email=email,
@@ -416,12 +459,17 @@ class AuthenticationService:
             user_agent=user_agent or '',
         )
         
+        # Update user's last login
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+        
         return {
             "user": {
                 "id": str(user.id),
                 "email": user.email,
                 "is_verified": user.is_verified,
                 "is_active": user.is_active,
+                "last_login": user.last_login.isoformat() if user.last_login else None,
             },
             "current_tenant": {
                 "id": str(current_tenant.id),

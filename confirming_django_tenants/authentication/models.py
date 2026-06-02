@@ -184,6 +184,10 @@ class PasswordResetToken(TimeStampedModel):
             self.expires_at > timezone.now() and
             self.attempts < self.max_attempts
         )
+        
+    def mark_as_used(self):
+        self.is_used = True
+        self.save(update_fields=['is_used'])
     
     @classmethod
     def generate_code(cls):

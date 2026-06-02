@@ -4,7 +4,7 @@ from strawberry.types import Info
 
 from confirming_django_tenants.rbac.services import RBACService
 from confirming_django_tenants.rbac.graphql.types import (
-    RoleType, PermissionGroupType, UserPermissionsType, UserRoleInfoType
+    PermissionGroupEntryType, RoleType, PermissionGroupType, UserPermissionsType, UserRoleInfoType
 )
 from confirming_django_tenants.tenants.models import Tenant
 
@@ -25,9 +25,21 @@ class RBACQuery:
         return tenant.roles.get(id=id)
     
     @strawberry.field
-    def permissions_grouped(self, info: Info) -> Dict[str, PermissionGroupType]:
+    def permissions_grouped(
+        self,
+        info: Info
+    ) -> List[PermissionGroupEntryType]:
         """Get all permissions grouped by module."""
-        return RBACService.get_permissions_grouped()
+
+        grouped = RBACService.get_permissions_grouped()
+
+        return [
+            PermissionGroupEntryType(
+                key=key,
+                value=value,
+            )
+            for key, value in grouped.items()
+    ]
     
     @strawberry.field
     def my_permissions(self, info: Info) -> UserPermissionsType:

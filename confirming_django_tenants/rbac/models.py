@@ -12,6 +12,13 @@ class Role(TimeStampedModel):
     
     Roles are created within each tenant schema and can be assigned to users.
     """
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='roles',
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100)
     description = models.TextField(blank=True, default="")
@@ -34,7 +41,7 @@ class Role(TimeStampedModel):
     )
 
     class Meta:
-        unique_together = ['slug']
+        unique_together = [('tenant', 'slug')]
         ordering = ['name']
         permissions = [
             ("manage_roles", "Can manage roles and permissions"),

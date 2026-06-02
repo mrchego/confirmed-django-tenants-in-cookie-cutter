@@ -193,7 +193,7 @@ AUTH_PASSWORD_VALIDATORS = [
 MIDDLEWARE = [
     # django-tenants MUST be first
     "django_tenants.middleware.main.TenantMainMiddleware",
-
+     "confirming_django_tenants.authentication.middleware.JWTAuthenticationMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -378,6 +378,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://*.localhost:8000",
 ]
+
+GRAPHENE = {
+    "SCHEMA": "config.schema.schema",
+}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
